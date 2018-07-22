@@ -19,24 +19,27 @@
  */
 export default class ReactJssHmrPlugin {
   apply(resolver) { // eslint-disable-line class-methods-use-this
-    resolver.plugin('described-resolve', (request, callback) => {
-      if (process.env.NODE_ENV !== 'production' &&
-          request.request === 'react-jss' &&
-          request.context &&
-          request.context.issuer &&
-          request.context.issuer.split(/[/\\]/).indexOf('react-jss-hmr') < 0
-      ) {
-        const aliasedRequest = Object.assign({}, request, {
-          request: 'react-jss-hmr'
-        })
-        return resolver.doResolve(
-          'resolve',
-          aliasedRequest,
-          'aliased react-jss to react-jss-hmr',
-          callback
-        )
-      }
-      return callback()
-    })
+    const target = resolver.ensureHook('resolve')
+    resolver.getHook('described-resolve')
+      .tapAsync('react-jss-hmr', (request, resolveContext, callback) => {
+        if (process.env.NODE_ENV !== 'production' &&
+            request.request === 'react-jss' &&
+            request.context &&
+            request.context.issuer &&
+            request.context.issuer.split(/[/\\]/).indexOf('react-jss-hmr') < 0
+        ) {
+          const aliasedRequest = Object.assign({}, request, {
+            request: 'react-jss-hmr'
+          })
+          return resolver.doResolve(
+            target,
+            aliasedRequest,
+            'aliased react-jss to react-jss-hmr',
+            resolveContext,
+            callback
+          )
+        }
+        return callback()
+      })
   }
 }
